@@ -6,6 +6,9 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.EmojiEvents
+import androidx.compose.material.icons.filled.People
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -16,20 +19,27 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.dariusepure.chessmobile.logic.Colors
+import com.dariusepure.chessmobile.logic.Difficulty
 import com.dariusepure.chessmobile.logic.UserManager
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MainMenuScreen(
-    onStartGame: (Colors, Boolean) -> Unit,
+    onStartGame: (Colors, Boolean, Difficulty) -> Unit,
     onResumeGame: () -> Unit,
     hasSavedGame: Boolean,
     onLogout: () -> Unit,
+    onLeaderboard: () -> Unit,
+    onFriends: () -> Unit,
     currentTheme: BoardTheme,
-    onThemeSelect: (BoardTheme) -> Unit
+    onThemeSelect: (BoardTheme) -> Unit,
+    themeMode: Int,
+    onThemeModeSelect: (Int) -> Unit
 ) {
     val context = LocalContext.current
     var selectedColor by remember { mutableStateOf(Colors.WHITE) }
     var vsComputer by remember { mutableStateOf(true) }
+    var selectedDifficulty by remember { mutableStateOf(Difficulty.MEDIUM) }
 
     Box(
         modifier = Modifier
@@ -46,12 +56,15 @@ fun MainMenuScreen(
             verticalArrangement = Arrangement.Center
         ) {
             Text(
-                text = "Hello, ${UserManager.currentUser?.email?.split("@")?.get(0) ?: "Player"}",
+                text = "Hello, ${UserManager.currentUser?.username ?: "Player"}",
                 fontSize = 28.sp,
                 fontWeight = FontWeight.Bold,
                 color = Color.White
             )
             
+            Spacer(modifier = Modifier.height(8.dp))
+            Text(text = "ID: ${UserManager.currentUser?.uid?.take(8)}...", color = Color.Gray, fontSize = 12.sp)
+
             Spacer(modifier = Modifier.height(24.dp))
             
             Card(
@@ -90,6 +103,28 @@ fun MainMenuScreen(
                         Text("vs Computer AI", color = Color.White)
                     }
 
+                    if (vsComputer) {
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text(text = "Difficulty", color = Color.Gray)
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            Difficulty.entries.forEach { diff: Difficulty ->
+                                FilterChip(
+                                    selected = selectedDifficulty == diff,
+                                    onClick = { selectedDifficulty = diff },
+                                    label = { Text(diff.name.lowercase().replaceFirstChar { it.uppercase() }) },
+                                    colors = FilterChipDefaults.filterChipColors(
+                                        selectedContainerColor = Color(0xFF769656),
+                                        labelColor = Color.White,
+                                        selectedLabelColor = Color.White
+                                    )
+                                )
+                            }
+                        }
+                    }
+
                     Spacer(modifier = Modifier.height(16.dp))
                     Text(text = "Board Theme", color = Color.Gray)
                     Spacer(modifier = Modifier.height(8.dp))
@@ -110,13 +145,33 @@ fun MainMenuScreen(
                             )
                         }
                     }
+
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Text(text = "App Theme", color = Color.Gray)
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        listOf("Auto", "Light", "Dark").forEachIndexed { index, label ->
+                            FilterChip(
+                                selected = themeMode == index,
+                                onClick = { onThemeModeSelect(index) },
+                                label = { Text(label) },
+                                colors = FilterChipDefaults.filterChipColors(
+                                    selectedContainerColor = Color(0xFF769656),
+                                    labelColor = Color.White,
+                                    selectedLabelColor = Color.White
+                                )
+                            )
+                        }
+                    }
                 }
             }
             
             Spacer(modifier = Modifier.height(32.dp))
             
             Button(
-                onClick = { onStartGame(selectedColor, vsComputer) },
+                onClick = { onStartGame(selectedColor, vsComputer, selectedDifficulty) },
                 modifier = Modifier.fillMaxWidth(),
                 colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF769656))
             ) {
@@ -141,6 +196,27 @@ fun MainMenuScreen(
                 onLogout()
             }) {
                 Text("Logout", color = Color.Gray)
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+            
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceEvenly
+            ) {
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    IconButton(onClick = onLeaderboard) {
+                        Icon(Icons.Default.EmojiEvents, contentDescription = "Leaderboard", tint = Color(0xFFFFD700))
+                    }
+                    Text("Rank", color = Color.White, fontSize = 12.sp)
+                }
+                
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    IconButton(onClick = onFriends) {
+                        Icon(Icons.Default.People, contentDescription = "Friends", tint = Color(0xFF769656))
+                    }
+                    Text("Friends", color = Color.White, fontSize = 12.sp)
+                }
             }
         }
     }

@@ -32,12 +32,13 @@ fun LoginScreen(onLoginSuccess: () -> Unit) {
     
     var email by rememberSaveable { mutableStateOf("") }
     var password by rememberSaveable { mutableStateOf("") }
+    var username by rememberSaveable { mutableStateOf("") }
     var isRegistering by rememberSaveable { mutableStateOf(false) }
     var isSubmitting by rememberSaveable { mutableStateOf(false) }
     var errorMessage by rememberSaveable { mutableStateOf("") }
 
     Scaffold(
-        containerColor = Color(0xFF302E2B)
+        containerColor = MaterialTheme.colorScheme.background
     ) { innerPadding ->
         Column(
             modifier = Modifier
@@ -49,16 +50,16 @@ fun LoginScreen(onLoginSuccess: () -> Unit) {
             verticalArrangement = Arrangement.Center
         ) {
             Icon(
-                imageVector = Icons.Default.SmartToy, // Chess AI/Robot vibe
+                imageVector = Icons.Default.SmartToy,
                 contentDescription = null,
-                tint = Color(0xFF769656),
+                tint = MaterialTheme.colorScheme.primary,
                 modifier = Modifier.size(72.dp)
             )
             
             Text(
                 text = if (isRegistering) "Create Account" else "Chess Master",
                 style = MaterialTheme.typography.displaySmall,
-                color = Color.White,
+                color = MaterialTheme.colorScheme.onBackground,
                 textAlign = TextAlign.Center,
                 modifier = Modifier.padding(top = 16.dp)
             )
@@ -66,7 +67,7 @@ fun LoginScreen(onLoginSuccess: () -> Unit) {
             Text(
                 text = if (isRegistering) "Join our chess community today." else "Login to track your progress and points.",
                 style = MaterialTheme.typography.bodyLarge,
-                color = Color.Gray,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
                 textAlign = TextAlign.Center,
                 modifier = Modifier.padding(top = 8.dp)
             )
@@ -75,6 +76,31 @@ fun LoginScreen(onLoginSuccess: () -> Unit) {
                 ErrorBanner(
                     message = errorMessage,
                     modifier = Modifier.padding(top = 24.dp)
+                )
+            }
+
+            if (isRegistering) {
+                OutlinedTextField(
+                    value = username,
+                    onValueChange = { 
+                        username = it
+                        errorMessage = "" 
+                    },
+                    label = { Text("Username (Unique ID)") },
+                    leadingIcon = { Icon(Icons.Default.SmartToy, contentDescription = null) },
+                    singleLine = true,
+                    enabled = !isSubmitting,
+                    modifier = Modifier.fillMaxWidth().padding(top = 16.dp),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedTextColor = MaterialTheme.colorScheme.onBackground,
+                        unfocusedTextColor = MaterialTheme.colorScheme.onBackground,
+                        focusedBorderColor = MaterialTheme.colorScheme.primary,
+                        unfocusedBorderColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                        focusedLabelColor = MaterialTheme.colorScheme.primary,
+                        unfocusedLabelColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                        focusedLeadingIconColor = MaterialTheme.colorScheme.primary,
+                        unfocusedLeadingIconColor = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
                 )
             }
 
@@ -129,7 +155,7 @@ fun LoginScreen(onLoginSuccess: () -> Unit) {
 
             Button(
                 onClick = {
-                    if (email.isBlank() || password.isBlank()) {
+                    if (email.isBlank() || password.isBlank() || (isRegistering && username.isBlank())) {
                         errorMessage = "Please fill in all fields"
                         return@Button
                     }
@@ -138,7 +164,7 @@ fun LoginScreen(onLoginSuccess: () -> Unit) {
                     scope.launch {
                         delay(800) // Simulate network/processing
                         val success = if (isRegistering) {
-                            UserManager.register(context, email, password)
+                            UserManager.register(context, email, password, username)
                         } else {
                             UserManager.login(context, email, password)
                         }
@@ -146,7 +172,7 @@ fun LoginScreen(onLoginSuccess: () -> Unit) {
                         if (success) {
                             onLoginSuccess()
                         } else {
-                            errorMessage = if (isRegistering) "Email already exists" else "Invalid email or password"
+                            errorMessage = if (isRegistering) "Email or Username already exists" else "Invalid email or password"
                             isSubmitting = false
                         }
                     }

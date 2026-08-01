@@ -1,33 +1,32 @@
-# Walkthrough - Login Screen Modernizat
+# Walkthrough - Comutator Dark/Light Mode
 
-Am redesenat complet ecranul de Login, inspirat de designul profesional din `car_activity_log`, adaptându-l pentru tema premium a jocului de șah.
+Am implementat un sistem complet de gestionare a temei vizuale, oferind utilizatorului control total asupra aspectului aplicației.
 
-## Îmbunătățiri UI/UX
+## Funcționalități Implementate
 
-### 1. Design Material 3 Complet
-- **Structură Profesională**: Am trecut de la un simplu card la o pagină completă (`Scaffold`) cu suport pentru scroll, asigurând o experiență fluidă pe orice dimensiune de ecran.
-- **Tipografie Ierarhizată**: Utilizarea stilurilor `displaySmall` și `bodyLarge` pentru o claritate vizuală sporită.
+### 1. Control Manual al Temei
+- **Selector în Meniu**: Am adăugat o secțiune nouă în Meniul Principal sub setările de joc.
+- **Trei Opțiuni**:
+    - **Auto**: Aplicația urmărește automat setările sistemului de operare (Dark/Light).
+    - **Light**: Forțează aplicația pe tema deschisă, cu fundaluri luminoase și contrast ridicat.
+    - **Dark**: Forțează tema premium întunecată (`#302E2B`), ideală pentru jocul pe timp de noapte.
 
-### 2. Formular Inteligent
-- **Iconițe în Câmpuri**: Am adăugat iconițe pentru Email (`Mail`) și Parolă (`Lock`), oferind un aspect mult mai modern.
-- **Tastatură Dedicată**: Câmpul de email deschide acum automat tastatura optimizată pentru adrese de email, iar cel de parolă ascunde caracterele.
-- **Feedback Vizual**: Erorile sunt afișate într-un `ErrorBanner` stilizat, care iese în evidență pe fundalul închis.
+### 2. Persistența Alegerii
+- Tema selectată este acum salvată pe dispozitiv prin `UserManager`.
+- La repornirea aplicației, Chess Mobile se va deschide direct cu tema preferată a utilizatorului.
 
-### 3. Interactivitate și Feedback
-- **Animație de Încărcare**: Butonul de login afișează acum un `CircularProgressIndicator` la apăsare, confirmând utilizatorului că cererea este în curs de procesare.
-- **Mod Guest**: Am adăugat o opțiune rapidă "Continue as Guest (Offline)" pentru jucătorii care vor să înceapă imediat.
-
-### 4. Integrare Temă Dark
-- Am sincronizat culorile ecranului de login cu fundalul închis al jocului (`#302E2B`), folosind accente de verde (`#769656`) pentru elementele interactive, creând o identitate vizuală unitară.
+### 3. Integrare Material 3
+- Am actualizat wrapper-ul `ChessMobileTheme` pentru a injecta dinamic starea de temă selectată.
+- Toate ecranele (Login, Friends, Game, Leaderboard) se adaptează instantaneu la schimbarea temei fără a necesita restartul aplicației.
 
 ## Detalii Tehnice
-- Implementarea `rememberSaveable` pentru a păstra textul introdus chiar și la rotația ecranului.
-- Folosirea corutinelor pentru a simula un proces de autentificare real cu feedback vizual.
-- Adăugarea bibliotecii de iconițe extinse (`material-icons-extended`) pentru elemente grafice variate.
+- Folosirea `mutableStateOf` în ViewModel pentru a asigura o actualizare reactivă a UI-ului.
+- Stocarea preferinței ca întreg (0, 1, 2) în `SharedPreferences` pentru eficiență.
+- Sincronizarea culorilor tablei de șah cu noul sistem de teme pentru a păstra vizibilitatea pieselor.
 
 > [!TIP]
-> Noua interfață este mult mai intuitivă. Încearcă să greșești parola pentru a vedea noul banner de eroare!
+> Încearcă să comuți între Light și Dark în timp ce ești în Meniu pentru a vedea cât de fluid se schimbă întreaga interfață!
 
 ## Verificare
-- Build succes (`assembleDebug`).
-- Navigarea și validările au fost testate manual prin simulare.
+- Compilare și rulare cu succes (`assembleDebug`).
+- Testarea persistenței prin închiderea forțată a aplicației după selectarea unei teme.

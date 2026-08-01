@@ -7,14 +7,16 @@ class Game {
     
     var humanPlayerColor = Colors.WHITE
     var isComputerOpponent = true
+    var difficulty = Difficulty.MEDIUM
 
     val history = mutableListOf<Move>()
 
-    fun start(playerColor: Colors, vsComputer: Boolean) {
+    fun start(playerColor: Colors, vsComputer: Boolean, diff: Difficulty = Difficulty.MEDIUM) {
         board.initialize()
         currentPlayer = Colors.WHITE
         humanPlayerColor = playerColor
         isComputerOpponent = vsComputer
+        difficulty = diff
         history.clear()
     }
 
@@ -31,7 +33,7 @@ class Game {
 
     fun makeComputerMove(): Move? {
         if (!isComputerOpponent || currentPlayer == humanPlayerColor) return null
-        val move = ComputerPlayer.makeMove(board, currentPlayer)
+        val move = ComputerPlayer.makeMove(board, currentPlayer, difficulty)
         if (move != null) {
             history.add(move)
             switchPlayer()

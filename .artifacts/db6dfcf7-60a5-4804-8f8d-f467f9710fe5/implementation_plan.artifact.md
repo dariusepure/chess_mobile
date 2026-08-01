@@ -1,35 +1,34 @@
-# Plan: Login Screen Modernizat și Profesional
+# Plan: Comutator Dark/Light Mode
 
-Acest plan detaliază actualizarea ecranului de Login inspirat de proiectul `car_activity_log`, folosind cele mai bune practici de design Material 3 și un stil adaptat pentru un joc de șah premium.
+Acest plan detaliază implementarea unui comutator manual pentru temă (Dark, Light sau System Default), permițând utilizatorului să aleagă aspectul preferat indiferent de setările telefonului.
 
 ## Modificări Propuse
 
-### 1. UI Login Screen (`LoginScreen.kt`)
-Vom reproiecta complet ecranul de login pentru a include:
-- **Structură Profesională**: Utilizarea `Scaffold` și a unui `Column` centrat cu scroll.
-- **Identitate Vizuală**: Adăugarea unui icon reprezentativ la început (ex: `Icons.Default.Extension` pentru a sugera piese/puzzle).
-- **Tipografie Material 3**: Titluri mari (`displaySmall`) și texte de suport (`bodyLarge`) pentru o ierarhie vizuală clară.
-- **Câmpuri de Text Îmbunătățite**: `OutlinedTextField` cu iconițe (Email, Lock), suport pentru tastatură specifică (Email, Password) și gestionarea stării prin `rememberSaveable`.
-- **Feedback pentru Erori**: Implementarea unui `ErrorBanner` stilizat (fundal roșu șters, text clar) care apare deasupra formularului.
-- **Butoane Moderne**:
-    - Buton principal de Login cu stare de încărcare (`CircularProgressIndicator`).
-    - Buton pentru "Guest Mode" (Continue Offline).
-    - Link pentru comutarea între Login și Register.
-- **Temă Întunecată**: Păstrarea fundalului `#302E2B` pentru o experiență imersivă de tip "Dark Mode".
+### 1. Persistență Setări (`logic/UserManager.kt`)
+- **[MODIFY] [UserManager.kt](file:///home/darius/AndroidStudioProjects/ChessMobile/app/src/main/java/com/dariusepure/chessmobile/logic/UserManager.kt)**:
+    - Adăugarea unei chei noi în `SharedPreferences` pentru `theme_mode`.
+    - Funcții pentru a salva și a citi preferința de temă (0 = System, 1 = Light, 2 = Dark).
 
-### 2. Integrare Navigare (`MainActivity.kt`)
-- Actualizarea apelurilor către `LoginScreen` pentru a suporta noile callback-uri dacă este necesar.
+### 2. State Management (`ui/ChessViewModel.kt`)
+- **[MODIFY] [ChessViewModel.kt](file:///home/darius/AndroidStudioProjects/ChessMobile/app/src/main/java/com/dariusepure/chessmobile/ui/ChessViewModel.kt)**:
+    - Adăugarea unei stări `themeMode` observabile.
+    - Metodă `updateThemeMode(mode: Int)` care persistă alegerea și actualizează UI-ul.
 
-### 3. Simulare Stare "Submitting" (`ChessViewModel.kt`)
-- Adăugarea unei mici întârzieri la login pentru a arăta animația de încărcare, oferind o senzație de aplicație "reală".
+### 3. Integrare Temă (`ui/theme/Theme.kt` & `MainActivity.kt`)
+- **[MODIFY] [Theme.kt](file:///home/darius/AndroidStudioProjects/ChessMobile/app/src/main/java/com/dariusepure/chessmobile/ui/theme/Theme.kt)**:
+    - Actualizarea `ChessMobileTheme` pentru a accepta un parametru de tip `ThemeMode` și a forța culorile dacă este necesar.
+- **[MODIFY] [MainActivity.kt](file:///home/darius/AndroidStudioProjects/ChessMobile/app/src/main/java/com/dariusepure/chessmobile/MainActivity.kt)**:
+    - Pasarea stării de temă din ViewModel către wrapper-ul de temă Compose.
+
+### 4. UI Toggle (`ui/MainMenuScreen.kt`)
+- **[MODIFY] [MainMenuScreen.kt](file:///home/darius/AndroidStudioProjects/ChessMobile/app/src/main/java/com/dariusepure/chessmobile/ui/MainMenuScreen.kt)**:
+    - Adăugarea unei secțiuni de "Display" în setări.
+    - Un rând cu un icon de Soare/Lună și un `Switch` sau un set de `FilterChip`-uri pentru a alege: **System**, **Light**, **Dark**.
 
 ## Plan de Verificare
 
 ### Testare Manuală
-1.  **Vizual**: Verificarea alinierii elementelor și a contrastului pe fundalul închis.
-2.  **Validare**: Încercarea de a intra fără date și verificarea apariției bannerului de eroare.
-3.  **Animare**: Verificarea apariției spinner-ului de încărcare la apăsarea butonului de Login.
-4.  **Navigare**: Verificarea trecerii corecte în Meniul Principal după succes.
-
-## Open Questions
-- Dorești să adăugăm și opțiunea de "Continue with Google" (doar ca design momentan) pentru a completa look-ul profesional?
+1.  **Light Mode**: Selectarea "Light" și verificarea dacă fundalul devine deschis chiar dacă sistemul e pe Dark.
+2.  **Dark Mode**: Selectarea "Dark" și verificarea aspectului premium închis.
+3.  **Persistență**: Schimbarea temei, închiderea aplicației și verificarea dacă setarea s-a păstrat la redeschidere.
+4.  **Auto**: Revenirea la "System" și verificarea dacă urmărește setările Android.

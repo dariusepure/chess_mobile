@@ -1,10 +1,8 @@
-# Task-uri Modernizare Login Screen
+# Task-uri Comutator Dark/Light Mode
 
-- [x] Creare componentă `ErrorBanner` în `LoginScreen.kt`
-- [x] Redesenare `LoginScreen` folosind structura din `car_activity_log`
-    - [x] Adăugare Icon și Titluri display
-    - [x] Îmbunătățire câmpuri text (Email/Password) cu iconițe
-    - [x] Implementare stare de încărcare (Loading) în buton
-    - [x] Adăugare buton "Continue Offline"
-- [x] Sincronizare culori cu tema Dark a jocului
-- [x] Verificare finală și Walkthrough
+- [x] Implementare persistență temă în `UserManager.kt`
+- [x] Actualizare `ChessViewModel.kt` pentru gestionarea stării temei
+- [x] Modificare `Theme.kt` pentru a suporta temă forțată
+- [x] Integrare selector temă în `MainMenuScreen.kt`
+- [x] Actualizare `MainActivity.kt` pentru a lega totul
+- [x] Verificare și Walkthrough

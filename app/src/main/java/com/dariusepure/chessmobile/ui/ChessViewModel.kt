@@ -13,7 +13,6 @@ import kotlinx.coroutines.launch
 
 class ChessViewModel(application: Application) : AndroidViewModel(application) {
     private val game = Game()
-    private val context = application.applicationContext
     
     var boardState by mutableStateOf(game.board.getAllPieces())
         private set
@@ -28,6 +27,12 @@ class ChessViewModel(application: Application) : AndroidViewModel(application) {
         private set
 
     var gameStatus by mutableStateOf("White's turn")
+        private set
+
+    var evaluation by mutableStateOf(0f)
+        private set
+
+    var lastMove by mutableStateOf<Move?>(null)
         private set
 
     var currentTheme by mutableStateOf(ClassicTheme)
@@ -52,8 +57,11 @@ class ChessViewModel(application: Application) : AndroidViewModel(application) {
     var capturedByBlack by mutableStateOf<List<Piece>>(emptyList())
         private set
 
-    fun startGame(playerColor: Colors, vsComputer: Boolean) {
-        game.start(playerColor, vsComputer)
+    var themeMode by mutableStateOf(UserManager.getThemeMode(application))
+        private set
+
+    fun startGame(playerColor: Colors, vsComputer: Boolean, difficulty: Difficulty = Difficulty.MEDIUM) {
+        game.start(playerColor, vsComputer, difficulty)
         whiteTime = 600
         blackTime = 600
         startTimer()
@@ -138,10 +146,14 @@ class ChessViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     private fun executeMove(from: Position, to: Position, promotedType: Char? = null) {
+        val isCapture = game.board.getPieceAt(to) != null
         game.makeMove(from, to, promotedType)
         updateUIState()
         val app = getApplication<Application>()
         GameRepository.saveGame(app, game.history, game.humanPlayerColor, game.isComputerOpponent)
+        
+        if (isCapture) SoundManager.playCaptureSound() else SoundManager.playMoveSound()
+        if (game.board.isInCheck(game.currentPlayer)) SoundManager.playCheckSound()
 
         if (game.isComputerOpponent && !game.board.isCheckmate(game.currentPlayer)) {
             makeComputerMoveWithDelay()
@@ -151,15 +163,23 @@ class ChessViewModel(application: Application) : AndroidViewModel(application) {
     private fun makeComputerMoveWithDelay() {
         viewModelScope.launch {
             delay(1000)
-            game.makeComputerMove()
+            val move = game.makeComputerMove()
             updateUIState()
             val app = getApplication<Application>()
             GameRepository.saveGame(app, game.history, game.humanPlayerColor, game.isComputerOpponent)
+            
+            if (move?.capturedPiece != null) SoundManager.playCaptureSound() else SoundManager.playMoveSound()
+            if (game.board.isInCheck(game.currentPlayer)) SoundManager.playCheckSound()
         }
     }
 
     fun setTheme(theme: BoardTheme) {
         currentTheme = theme
+    }
+
+    fun updateThemeMode(mode: Int) {
+        themeMode = mode
+        UserManager.setThemeMode(getApplication(), mode)
     }
 
     fun getFormattedHistory(): List<String> {
@@ -184,7 +204,18 @@ class ChessViewModel(application: Application) : AndroidViewModel(application) {
     private fun updateUIState() {
         boardState = game.board.getAllPieces()
         currentPlayer = game.currentPlayer
+        lastMove = game.board.lastMove
         
+        // Calculate evaluation
+        var eval = 0f
+        boardState.values.forEach { piece ->
+            val value = when(piece.type) {
+                'Q' -> 9f; 'R' -> 5f; 'B' -> 3f; 'N' -> 3f; 'P' -> 1f; else -> 0f
+            }
+            if (piece.color == Colors.WHITE) eval += value else eval -= value
+        }
+        evaluation = eval
+
         // Update captured pieces lists
         val allCaptured = game.history.mapNotNull { it.capturedPiece }
         capturedByWhite = allCaptured.filter { it.color == Colors.BLACK }
