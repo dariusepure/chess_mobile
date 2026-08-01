@@ -14,18 +14,25 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.dariusepure.chessmobile.logic.Colors
+import com.dariusepure.chessmobile.logic.FirestoreUser
 import com.dariusepure.chessmobile.logic.UserManager
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun FriendsScreen(onBack: () -> Unit) {
-    val context = androidx.compose.ui.platform.LocalContext.current
+fun FriendsScreen(onBack: () -> Unit, onStartOnlineGame: (String, Colors) -> Unit) {
+    val scope = rememberCoroutineScope()
     var showAddFriendDialog by remember { mutableStateOf(false) }
     var friendUsername by remember { mutableStateOf("") }
     var errorMsg by remember { mutableStateOf("") }
+    var friends by remember { mutableStateOf<List<FirestoreUser>>(emptyList()) }
     
     val currentUser = UserManager.currentUser
-    val friends = UserManager.getAllUsers().filter { currentUser?.friends?.contains(it.uid) == true }
+
+    LaunchedEffect(currentUser?.friends) {
+        friends = UserManager.getAllUsers().filter { currentUser?.friends?.contains(it.uid) == true }
+    }
 
     Scaffold(
         topBar = {
@@ -63,7 +70,14 @@ fun FriendsScreen(onBack: () -> Unit) {
             } else {
                 LazyColumn(modifier = Modifier.fillMaxSize().padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     items(friends) { friend ->
-                        FriendItem(friend = friend)
+                        FriendItem(friend = friend, onChallenge = {
+                            scope.launch {
+                                val matchId = UserManager.createMatch(friend.uid, true)
+                                if (matchId != null) {
+                                    onStartOnlineGame(matchId, Colors.WHITE)
+                                }
+                            }
+                        })
                     }
                 }
             }
@@ -88,16 +102,18 @@ fun FriendsScreen(onBack: () -> Unit) {
                 },
                 confirmButton = {
                     Button(onClick = { 
-                        val friend = UserManager.findUserByUsername(friendUsername)
-                        if (friend == null) {
-                            errorMsg = "User not found"
-                        } else if (friend.uid == UserManager.currentUser?.uid) {
-                            errorMsg = "Cannot add yourself"
-                        } else if (UserManager.currentUser?.friends?.contains(friend.uid) == true) {
-                            errorMsg = "Already friends"
-                        } else {
-                            UserManager.addFriend(context, friend.uid)
-                            showAddFriendDialog = false 
+                        scope.launch {
+                            val friend = UserManager.findUserByUsername(friendUsername)
+                            if (friend == null) {
+                                errorMsg = "User not found"
+                            } else if (friend.uid == UserManager.currentUser?.uid) {
+                                errorMsg = "Cannot add yourself"
+                            } else if (UserManager.currentUser?.friends?.contains(friend.uid) == true) {
+                                errorMsg = "Already friends"
+                            } else {
+                                UserManager.addFriend(friend.uid)
+                                showAddFriendDialog = false 
+                            }
                         }
                     }) {
                         Text("Add")
@@ -114,7 +130,7 @@ fun FriendsScreen(onBack: () -> Unit) {
 }
 
 @Composable
-fun FriendItem(friend: com.dariusepure.chessmobile.logic.User) {
+fun FriendItem(friend: FirestoreUser, onChallenge: () -> Unit) {
     Card(
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(containerColor = Color(0xFF3E3C39))
@@ -129,7 +145,7 @@ fun FriendItem(friend: com.dariusepure.chessmobile.logic.User) {
                 Text(text = friend.username, color = Color.White, fontSize = 18.sp)
                 Text(text = "${friend.points} pts", color = Color.Gray, fontSize = 14.sp)
             }
-            Button(onClick = { /* Challenge logic */ }) {
+            Button(onClick = onChallenge) {
                 Text("Challenge")
             }
         }

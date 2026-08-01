@@ -35,6 +35,15 @@ class ChessViewModel(application: Application) : AndroidViewModel(application) {
     var lastMove by mutableStateOf<Move?>(null)
         private set
 
+    var onlineMatchId by mutableStateOf<String?>(null)
+        private set
+
+    var activeMatches by mutableStateOf<List<FirestoreMatch>>(emptyList())
+        private set
+    
+    private var globalMatchesListeners = mutableListOf<com.google.firebase.firestore.ListenerRegistration>()
+    private var matchListener: com.google.firebase.firestore.ListenerRegistration? = null
+
     var currentTheme by mutableStateOf(ClassicTheme)
         private set
 
@@ -57,37 +66,91 @@ class ChessViewModel(application: Application) : AndroidViewModel(application) {
     var capturedByBlack by mutableStateOf<List<Piece>>(emptyList())
         private set
 
-    var themeMode by mutableStateOf(UserManager.getThemeMode(application))
+    var hasSavedGame by mutableStateOf(false)
         private set
 
+    init {
+        checkSavedGame()
+        listenToUserMatches()
+    }
+
+    private fun listenToUserMatches() {
+        globalMatchesListeners.forEach { it.remove() }
+        globalMatchesListeners.clear()
+        val newListeners = UserManager.listenToMatches { matches ->
+            activeMatches = matches
+        }
+        globalMatchesListeners.addAll(newListeners)
+    }
+
+    fun checkSavedGame() {
+        val uid = UserManager.currentUser?.uid ?: return
+        viewModelScope.launch {
+            hasSavedGame = FirestoreGameRepository.loadGame(uid) != null
+        }
+    }
+
     fun startGame(playerColor: Colors, vsComputer: Boolean, difficulty: Difficulty = Difficulty.MEDIUM) {
+        onlineMatchId = null
+        matchListener?.remove()
+        
         game.start(playerColor, vsComputer, difficulty)
         whiteTime = 600
         blackTime = 600
         startTimer()
         updateUIState()
-        val app = getApplication<Application>()
-        GameRepository.saveGame(app, game.history, game.humanPlayerColor, game.isComputerOpponent)
         
-        // If human is Black, computer should move first
+        val user = UserManager.currentUser
+        if (user != null) {
+            viewModelScope.launch {
+                FirestoreGameRepository.saveGame(user.uid, game.history, game.humanPlayerColor, game.isComputerOpponent)
+                hasSavedGame = true
+            }
+        }
+        
         if (vsComputer && playerColor == Colors.BLACK) {
             makeComputerMoveWithDelay()
         }
     }
 
-    fun resumeGame() {
-        val app = getApplication<Application>()
-        val saved = GameRepository.loadGame(app) ?: return
-        game.start(saved.second, saved.third)
-        saved.first.forEach { move ->
-            game.makeMove(move.first, move.second, move.third)
-        }
+    fun startOnlineGame(matchId: String, playerColor: Colors) {
+        onlineMatchId = matchId
+        game.start(playerColor, false)
+        whiteTime = 600
+        blackTime = 600
         startTimer()
-        updateUIState()
+        
+        matchListener?.remove()
+        matchListener = com.google.firebase.firestore.FirebaseFirestore.getInstance()
+            .collection("active_matches")
+            .document(matchId)
+            .addSnapshotListener { snapshot, _ ->
+                val match = snapshot?.toObject(FirestoreMatch::class.java) ?: return@addSnapshotListener
+                if (match.moves.size > game.history.size) {
+                    val newMoves = match.moves.drop(game.history.size)
+                    newMoves.forEach { moveStr ->
+                        val parts = moveStr.split("|")
+                        val from = Position.fromString(parts[0])!!
+                        val to = Position.fromString(parts[1])!!
+                        val promo = if (parts[2][0] == ' ') null else parts[2][0]
+                        game.makeMove(from, to, promo)
+                    }
+                    updateUIState()
+                }
+            }
     }
 
-    fun hasSavedGame(): Boolean {
-        return GameRepository.loadGame(getApplication<Application>()) != null
+    fun resumeGame() {
+        val user = UserManager.currentUser ?: return
+        viewModelScope.launch {
+            val saved = FirestoreGameRepository.loadGame(user.uid) ?: return@launch
+            game.start(saved.second, saved.third)
+            saved.first.forEach { move ->
+                game.makeMove(move.first, move.second, move.third)
+            }
+            startTimer()
+            updateUIState()
+        }
     }
 
     private fun startTimer() {
@@ -105,7 +168,8 @@ class ChessViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun onSquareClick(position: Position) {
-        if (game.isComputerOpponent && game.currentPlayer != game.humanPlayerColor) return
+        if (onlineMatchId != null && game.currentPlayer != game.humanPlayerColor) return
+        if (onlineMatchId == null && game.isComputerOpponent && game.currentPlayer != game.humanPlayerColor) return
 
         val selected = selectedPosition
         if (selected == null) {
@@ -147,15 +211,26 @@ class ChessViewModel(application: Application) : AndroidViewModel(application) {
 
     private fun executeMove(from: Position, to: Position, promotedType: Char? = null) {
         val isCapture = game.board.getPieceAt(to) != null
-        game.makeMove(from, to, promotedType)
+        val move = game.makeMove(from, to, promotedType) ?: return
         updateUIState()
-        val app = getApplication<Application>()
-        GameRepository.saveGame(app, game.history, game.humanPlayerColor, game.isComputerOpponent)
+        
+        val user = UserManager.currentUser
+        if (user != null) {
+            viewModelScope.launch {
+                if (onlineMatchId != null) {
+                    val moveStr = "${move.from}|${move.to}|${move.promotedType ?: ' '}"
+                    val currentMoves = game.history.dropLast(1).map { "${it.from}|${it.to}|${it.promotedType ?: ' '}" }
+                    UserManager.sendMove(onlineMatchId!!, moveStr, currentMoves)
+                } else {
+                    FirestoreGameRepository.saveGame(user.uid, game.history, game.humanPlayerColor, game.isComputerOpponent)
+                }
+            }
+        }
         
         if (isCapture) SoundManager.playCaptureSound() else SoundManager.playMoveSound()
         if (game.board.isInCheck(game.currentPlayer)) SoundManager.playCheckSound()
 
-        if (game.isComputerOpponent && !game.board.isCheckmate(game.currentPlayer)) {
+        if (onlineMatchId == null && game.isComputerOpponent && !game.board.isCheckmate(game.currentPlayer)) {
             makeComputerMoveWithDelay()
         }
     }
@@ -165,8 +240,11 @@ class ChessViewModel(application: Application) : AndroidViewModel(application) {
             delay(1000)
             val move = game.makeComputerMove()
             updateUIState()
-            val app = getApplication<Application>()
-            GameRepository.saveGame(app, game.history, game.humanPlayerColor, game.isComputerOpponent)
+            
+            val user = UserManager.currentUser
+            if (user != null) {
+                FirestoreGameRepository.saveGame(user.uid, game.history, game.humanPlayerColor, game.isComputerOpponent)
+            }
             
             if (move?.capturedPiece != null) SoundManager.playCaptureSound() else SoundManager.playMoveSound()
             if (game.board.isInCheck(game.currentPlayer)) SoundManager.playCheckSound()
@@ -177,9 +255,16 @@ class ChessViewModel(application: Application) : AndroidViewModel(application) {
         currentTheme = theme
     }
 
-    fun updateThemeMode(mode: Int) {
-        themeMode = mode
-        UserManager.setThemeMode(getApplication(), mode)
+    fun getPGN(): String {
+        val pgn = StringBuilder()
+        pgn.append("[Event \"Casual Game\"]\n")
+        pgn.append("[Site \"ChessMobile\"]\n")
+        pgn.append("[White \"${if (game.humanPlayerColor == Colors.WHITE) "Human" else "Computer"}\"]\n")
+        pgn.append("[Black \"${if (game.humanPlayerColor == Colors.BLACK) "Human" else "Computer"}\"]\n")
+        pgn.append("[Result \"*\"]\n\n")
+
+        getFormattedHistory().forEach { pgn.append("$it ") }
+        return pgn.toString()
     }
 
     fun getFormattedHistory(): List<String> {
@@ -206,7 +291,6 @@ class ChessViewModel(application: Application) : AndroidViewModel(application) {
         currentPlayer = game.currentPlayer
         lastMove = game.board.lastMove
         
-        // Calculate evaluation
         var eval = 0f
         boardState.values.forEach { piece ->
             val value = when(piece.type) {
@@ -216,7 +300,6 @@ class ChessViewModel(application: Application) : AndroidViewModel(application) {
         }
         evaluation = eval
 
-        // Update captured pieces lists
         val allCaptured = game.history.mapNotNull { it.capturedPiece }
         capturedByWhite = allCaptured.filter { it.color == Colors.BLACK }
         capturedByBlack = allCaptured.filter { it.color == Colors.WHITE }
@@ -238,20 +321,32 @@ class ChessViewModel(application: Application) : AndroidViewModel(application) {
 
     private fun handleGameOver(winnerColor: Colors?) {
         timerJob?.cancel()
-        val app = getApplication<Application>()
-        GameRepository.clearSavedGame(app)
-        
         val user = UserManager.currentUser ?: return
-        if (winnerColor == null) {
-            user.draws++
-            user.points += 5
-        } else if (winnerColor == game.humanPlayerColor) {
-            user.wins++
-            user.points += 20
-        } else {
-            user.losses++
-            user.points = (user.points - 10).coerceAtLeast(0)
+        
+        viewModelScope.launch {
+            if (onlineMatchId != null) {
+                val winnerId = if (winnerColor == null) null else {
+                    val match = activeMatches.find { it.matchId == onlineMatchId }
+                    if (winnerColor == Colors.WHITE) match?.whitePlayerId else match?.blackPlayerId
+                }
+                UserManager.finishMatch(onlineMatchId!!, winnerId, draw = (winnerColor == null))
+            } else {
+                FirestoreGameRepository.clearSavedGame(user.uid)
+            }
+            
+            hasSavedGame = false
+            
+            if (winnerColor == null) {
+                user.draws++
+                user.points += 5
+            } else if (winnerColor == game.humanPlayerColor) {
+                user.wins++
+                user.points += 20
+            } else {
+                user.losses++
+                user.points = (user.points - 10).coerceAtLeast(0)
+            }
+            UserManager.updateUser(user)
         }
-        UserManager.updateUser(app, user)
     }
 }

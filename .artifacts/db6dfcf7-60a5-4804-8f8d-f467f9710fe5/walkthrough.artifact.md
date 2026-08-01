@@ -1,32 +1,35 @@
-# Walkthrough - Comutator Dark/Light Mode
+# Walkthrough - Redenumire Entități Firestore & Sincronizare Cloud
 
-Am implementat un sistem complet de gestionare a temei vizuale, oferind utilizatorului control total asupra aspectului aplicației.
+Am finalizat refactorizarea majoră a numelor pentru entitățile care interacționează cu baza de date Firebase, respectând convenția de denumire profesională (prefixul `Firestore`). De asemenea, am integrat complet logica de sincronizare a meciurilor și a scorurilor în noile structuri.
 
-## Funcționalități Implementate
+## Modificări Realizate
 
-### 1. Control Manual al Temei
-- **Selector în Meniu**: Am adăugat o secțiune nouă în Meniul Principal sub setările de joc.
-- **Trei Opțiuni**:
-    - **Auto**: Aplicația urmărește automat setările sistemului de operare (Dark/Light).
-    - **Light**: Forțează aplicația pe tema deschisă, cu fundaluri luminoase și contrast ridicat.
-    - **Dark**: Forțează tema premium întunecată (`#302E2B`), ideală pentru jocul pe timp de noapte.
+### 1. Nomenclatură Profesională (Firestore Prefix)
+Am redenumit toate clasele care reprezintă documente sau servicii cloud pentru o distincție clară între logica locală și cea de server:
+- **`FirestoreUser`**: Reprezintă profilul utilizatorului stocat în Firestore.
+- **`FirestoreMatch`**: Reprezintă starea unui meci online activ.
+- **`FirestoreGameStatus`**: Enum pentru stările meciului (WAITING, ACTIVE, FINISHED).
+- **`FirestoreGameRepository`**: Obiectul responsabil pentru salvarea și încărcarea partidelor din Cloud.
 
-### 2. Persistența Alegerii
-- Tema selectată este acum salvată pe dispozitiv prin `UserManager`.
-- La repornirea aplicației, Chess Mobile se va deschide direct cu tema preferată a utilizatorului.
+### 2. Sincronizare Completă a Datelor
+- Toate referințele din `UserManager`, `ChessViewModel` și ecranele UI (`Leaderboard`, `Friends`, `MainMenu`) au fost actualizate pentru a folosi noile entități.
+- **Real-time Updates**: Clasamentul și lista de prieteni folosesc acum listeneri Firestore, actualizându-se automat când apar modificări în baza de date.
 
-### 3. Integrare Material 3
-- Am actualizat wrapper-ul `ChessMobileTheme` pentru a injecta dinamic starea de temă selectată.
-- Toate ecranele (Login, Friends, Game, Leaderboard) se adaptează instantaneu la schimbarea temei fără a necesita restartul aplicației.
+### 3. Securitate și Configurare (Root)
+Am adăugat în rădăcina proiectului fișierele de definiție Firestore:
+- **`firestore.rules`**: Regulile de securitate care protejează datele utilizatorilor.
+- **`firestore.indexes.json`**: Indexurile necesare pentru performanța căutărilor online.
 
 ## Detalii Tehnice
-- Folosirea `mutableStateOf` în ViewModel pentru a asigura o actualizare reactivă a UI-ului.
-- Stocarea preferinței ca întreg (0, 1, 2) în `SharedPreferences` pentru eficiență.
-- Sincronizarea culorilor tablei de șah cu noul sistem de teme pentru a păstra vizibilitatea pieselor.
+- Folosirea `db.batch()` pentru actualizarea sincronă a scorurilor la finalul unui meci.
+- Implementarea `SnapshotListeners` în `ChessViewModel` pentru a oferi o experiență de joc online fără latență vizibilă.
+- Sincronizarea istoricului mutărilor în format Cloud-ready.
 
 > [!TIP]
-> Încearcă să comuți între Light și Dark în timp ce ești în Meniu pentru a vedea cât de fluid se schimbă întreaga interfață!
+> Fișierele de configurare din root (`firestore.rules`) sunt acum "sursa adevărului" pentru structura bazei tale de date. Le poți folosi oricând pentru a restaura configurația într-un proiect Firebase nou.
 
 ## Verificare
-- Compilare și rulare cu succes (`assembleDebug`).
-- Testarea persistenței prin închiderea forțată a aplicației după selectarea unei teme.
+- Build succes: `assembleDebug`.
+- Toate fluxurile de navigare și logică de joc au fost validate post-refactorizare.
+
+**Aplicația este acum perfect organizată și sincronizată cu Cloud-ul sub noua structură profesională!**

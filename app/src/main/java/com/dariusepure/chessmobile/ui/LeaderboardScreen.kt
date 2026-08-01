@@ -7,19 +7,33 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.EmojiEvents
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.dariusepure.chessmobile.logic.FirestoreUser
 import com.dariusepure.chessmobile.logic.UserManager
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun LeaderboardScreen(onBack: () -> Unit) {
-    val users = UserManager.getAllUsers().sortedByDescending { it.points }
+    var users by remember { mutableStateOf<List<FirestoreUser>>(emptyList()) }
+    var isLoading by remember { mutableStateOf(true) }
+
+    DisposableEffect(Unit) {
+        val db = com.google.firebase.firestore.FirebaseFirestore.getInstance()
+        val listener = db.collection("users")
+            .orderBy("points", com.google.firebase.firestore.Query.Direction.DESCENDING)
+            .limit(50)
+            .addSnapshotListener { snapshot, _ ->
+                users = snapshot?.toObjects(FirestoreUser::class.java) ?: emptyList()
+                isLoading = false
+            }
+        onDispose { listener.remove() }
+    }
 
     Scaffold(
         topBar = {
@@ -54,7 +68,7 @@ fun LeaderboardScreen(onBack: () -> Unit) {
 }
 
 @Composable
-fun LeaderboardItem(user: com.dariusepure.chessmobile.logic.User) {
+fun LeaderboardItem(user: FirestoreUser) {
     Card(
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(containerColor = Color(0xFF3E3C39))

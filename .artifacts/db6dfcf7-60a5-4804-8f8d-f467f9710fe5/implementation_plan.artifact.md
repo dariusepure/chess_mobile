@@ -1,34 +1,33 @@
-# Plan: Comutator Dark/Light Mode
+# Plan: Redenumire Entități Firestore (Naming Convention)
 
-Acest plan detaliază implementarea unui comutator manual pentru temă (Dark, Light sau System Default), permițând utilizatorului să aleagă aspectul preferat indiferent de setările telefonului.
+Acest plan detaliază redenumirea fișierelor și claselor care interacționează direct cu baza de date Cloud Firestore, folosind prefixul `Firestore` pentru o claritate sporită, conform modelului profesional din `car_activity_log`.
 
 ## Modificări Propuse
 
-### 1. Persistență Setări (`logic/UserManager.kt`)
-- **[MODIFY] [UserManager.kt](file:///home/darius/AndroidStudioProjects/ChessMobile/app/src/main/java/com/dariusepure/chessmobile/logic/UserManager.kt)**:
-    - Adăugarea unei chei noi în `SharedPreferences` pentru `theme_mode`.
-    - Funcții pentru a salva și a citi preferința de temă (0 = System, 1 = Light, 2 = Dark).
+### 1. Modele de Date (Entities)
+Vom redenumi clasele care reprezintă documentele stocate în Firestore:
+- **[DELETE] [User.kt](file:///home/darius/AndroidStudioProjects/ChessMobile/app/src/main/java/com/dariusepure/chessmobile/logic/User.kt)**
+- **[NEW] [FirestoreUser.kt](file:///home/darius/AndroidStudioProjects/ChessMobile/app/src/main/java/com/dariusepure/chessmobile/logic/FirestoreUser.kt)**: Redenumirea clasei `User` în `FirestoreUser`.
+- **[MODIFY] [Game.kt](file:///home/darius/AndroidStudioProjects/ChessMobile/app/src/main/java/com/dariusepure/chessmobile/logic/Game.kt)**: Extragerea claselor `Match` și `GameStatus`.
+- **[NEW] [FirestoreMatch.kt](file:///home/darius/AndroidStudioProjects/ChessMobile/app/src/main/java/com/dariusepure/chessmobile/logic/FirestoreMatch.kt)**: Conține noile clase `FirestoreMatch` și `FirestoreGameStatus`.
 
-### 2. State Management (`ui/ChessViewModel.kt`)
-- **[MODIFY] [ChessViewModel.kt](file:///home/darius/AndroidStudioProjects/ChessMobile/app/src/main/java/com/dariusepure/chessmobile/ui/ChessViewModel.kt)**:
-    - Adăugarea unei stări `themeMode` observabile.
-    - Metodă `updateThemeMode(mode: Int)` care persistă alegerea și actualizează UI-ul.
+### 2. Repositories și Logica de Sincronizare
+- **[DELETE] [GameRepository.kt](file:///home/darius/AndroidStudioProjects/ChessMobile/app/src/main/java/com/dariusepure/chessmobile/logic/GameRepository.kt)**
+- **[NEW] [FirestoreGameRepository.kt](file:///home/darius/AndroidStudioProjects/ChessMobile/app/src/main/java/com/dariusepure/chessmobile/logic/FirestoreGameRepository.kt)**: Gestionarea partidelor salvate în Cloud sub noul nume.
 
-### 3. Integrare Temă (`ui/theme/Theme.kt` & `MainActivity.kt`)
-- **[MODIFY] [Theme.kt](file:///home/darius/AndroidStudioProjects/ChessMobile/app/src/main/java/com/dariusepure/chessmobile/ui/theme/Theme.kt)**:
-    - Actualizarea `ChessMobileTheme` pentru a accepta un parametru de tip `ThemeMode` și a forța culorile dacă este necesar.
-- **[MODIFY] [MainActivity.kt](file:///home/darius/AndroidStudioProjects/ChessMobile/app/src/main/java/com/dariusepure/chessmobile/MainActivity.kt)**:
-    - Pasarea stării de temă din ViewModel către wrapper-ul de temă Compose.
-
-### 4. UI Toggle (`ui/MainMenuScreen.kt`)
-- **[MODIFY] [MainMenuScreen.kt](file:///home/darius/AndroidStudioProjects/ChessMobile/app/src/main/java/com/dariusepure/chessmobile/ui/MainMenuScreen.kt)**:
-    - Adăugarea unei secțiuni de "Display" în setări.
-    - Un rând cu un icon de Soare/Lună și un `Switch` sau un set de `FilterChip`-uri pentru a alege: **System**, **Light**, **Dark**.
+### 3. Actualizare Referințe
+Vom actualiza toate fișierele care foloseau vechile denumiri:
+- `UserManager.kt` (referințe la `FirestoreUser` și `FirestoreMatch`).
+- `ChessViewModel.kt` (referințe la `FirestoreMatch`, `FirestoreGameRepository`).
+- `FriendsScreen.kt`, `LeaderboardScreen.kt`, `MainMenuScreen.kt`, `MainActivity.kt`.
 
 ## Plan de Verificare
 
-### Testare Manuală
-1.  **Light Mode**: Selectarea "Light" și verificarea dacă fundalul devine deschis chiar dacă sistemul e pe Dark.
-2.  **Dark Mode**: Selectarea "Dark" și verificarea aspectului premium închis.
-3.  **Persistență**: Schimbarea temei, închiderea aplicației și verificarea dacă setarea s-a păstrat la redeschidere.
-4.  **Auto**: Revenirea la "System" și verificarea dacă urmărește setările Android.
+### Testare
+1.  **Compilare**: Verificarea lipsei erorilor de tip "Unresolved reference" după refactorizare.
+2.  **Firebase Sync**: Verificarea faptului că datele continuă să fie salvate/citite corect din Firestore (Firestore folosește numele claselor pentru mapare automată dacă nu sunt specificate adnotări, deci trebuie să fim atenți la compatibilitatea cu documentele existente).
+
+> [!WARNING]
+> Schimbarea numelui clasei `User` în `FirestoreUser` ar putea afecta modul în care Firestore mapază automat obiectele dacă baza de date conține deja date. Vom folosi alias-uri sau ne vom asigura că proprietățile rămân identice.
+
+**Ești de acord să începem această refactorizare a numelor?**

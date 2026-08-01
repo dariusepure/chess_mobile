@@ -20,6 +20,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.dariusepure.chessmobile.logic.Colors
 import com.dariusepure.chessmobile.logic.Difficulty
+import com.dariusepure.chessmobile.logic.FirestoreMatch
 import com.dariusepure.chessmobile.logic.UserManager
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -31,10 +32,11 @@ fun MainMenuScreen(
     onLogout: () -> Unit,
     onLeaderboard: () -> Unit,
     onFriends: () -> Unit,
+    onExportBackup: () -> Unit,
+    activeMatches: List<FirestoreMatch>,
+    onJoinMatch: (FirestoreMatch) -> Unit,
     currentTheme: BoardTheme,
-    onThemeSelect: (BoardTheme) -> Unit,
-    themeMode: Int,
-    onThemeModeSelect: (Int) -> Unit
+    onThemeSelect: (BoardTheme) -> Unit
 ) {
     val context = LocalContext.current
     var selectedColor by remember { mutableStateOf(Colors.WHITE) }
@@ -67,6 +69,29 @@ fun MainMenuScreen(
 
             Spacer(modifier = Modifier.height(24.dp))
             
+            if (activeMatches.isNotEmpty()) {
+                Text(text = "Online Games", color = Color.White, fontWeight = FontWeight.Bold)
+                activeMatches.forEach { match ->
+                    val isMyTurn = if (match.moves.size % 2 == 0) {
+                        match.whitePlayerId == UserManager.currentUser?.uid
+                    } else {
+                        match.blackPlayerId == UserManager.currentUser?.uid
+                    }
+                    Card(
+                        modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp).clickable { onJoinMatch(match) },
+                        colors = CardDefaults.cardColors(containerColor = Color(0xFF3E3C39))
+                    ) {
+                        Row(modifier = Modifier.padding(12.dp), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                            Text(text = "Game vs Opponent", color = Color.White)
+                            if (isMyTurn) {
+                                Badge(containerColor = Color(0xFF769656)) { Text("YOUR TURN", color = Color.White) }
+                            }
+                        }
+                    }
+                }
+                Spacer(modifier = Modifier.height(16.dp))
+            }
+
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 colors = CardDefaults.cardColors(containerColor = Color(0xFF3E3C39))
@@ -145,26 +170,6 @@ fun MainMenuScreen(
                             )
                         }
                     }
-
-                    Spacer(modifier = Modifier.height(16.dp))
-                    Text(text = "App Theme", color = Color.Gray)
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween
-                    ) {
-                        listOf("Auto", "Light", "Dark").forEachIndexed { index, label ->
-                            FilterChip(
-                                selected = themeMode == index,
-                                onClick = { onThemeModeSelect(index) },
-                                label = { Text(label) },
-                                colors = FilterChipDefaults.filterChipColors(
-                                    selectedContainerColor = Color(0xFF769656),
-                                    labelColor = Color.White,
-                                    selectedLabelColor = Color.White
-                                )
-                            )
-                        }
-                    }
                 }
             }
             
@@ -192,10 +197,16 @@ fun MainMenuScreen(
             Spacer(modifier = Modifier.height(16.dp))
             
             TextButton(onClick = { 
-                UserManager.logout(context)
+                UserManager.logout()
                 onLogout()
             }) {
                 Text("Logout", color = Color.Gray)
+            }
+
+            Spacer(modifier = Modifier.height(8.dp))
+            
+            TextButton(onClick = onExportBackup) {
+                Text("Create Local Backup", color = Color(0xFF769656), fontSize = 12.sp)
             }
 
             Spacer(modifier = Modifier.height(16.dp))

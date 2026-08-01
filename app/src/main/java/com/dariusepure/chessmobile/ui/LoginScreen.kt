@@ -163,16 +163,16 @@ fun LoginScreen(onLoginSuccess: () -> Unit) {
                     isSubmitting = true
                     scope.launch {
                         delay(800) // Simulate network/processing
-                        val success = if (isRegistering) {
-                            UserManager.register(context, email, password, username)
+                        val result = if (isRegistering) {
+                            UserManager.register(email, password, username)
                         } else {
-                            UserManager.login(context, email, password)
+                            UserManager.login(email, password)
                         }
                         
-                        if (success) {
+                        if (result.isSuccess) {
                             onLoginSuccess()
                         } else {
-                            errorMessage = if (isRegistering) "Email or Username already exists" else "Invalid email or password"
+                            errorMessage = result.exceptionOrNull()?.message ?: "An unexpected error occurred"
                             isSubmitting = false
                         }
                     }
@@ -205,6 +205,36 @@ fun LoginScreen(onLoginSuccess: () -> Unit) {
                     text = if (isRegistering) "Already have an account? Login" else "New here? Register now",
                     color = Color(0xFF769656)
                 )
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+            
+            OutlinedButton(
+                onClick = {
+                    isSubmitting = true
+                    scope.launch {
+                        val result = UserManager.signInWithGoogle(context)
+                        if (result.isSuccess) onLoginSuccess()
+                        else {
+                            errorMessage = result.exceptionOrNull()?.message ?: "Google Sign-In failed"
+                            isSubmitting = false
+                        }
+                    }
+                },
+                enabled = !isSubmitting,
+                modifier = Modifier.fillMaxWidth().height(56.dp),
+                border = androidx.compose.foundation.BorderStroke(1.dp, Color.Gray),
+                shape = MaterialTheme.shapes.medium,
+                colors = ButtonDefaults.outlinedButtonColors(contentColor = Color.White)
+            ) {
+                Icon(
+                    imageVector = Icons.Default.SmartToy, // Should be Google Icon if available
+                    contentDescription = null,
+                    modifier = Modifier.size(20.dp),
+                    tint = Color.Unspecified
+                )
+                Spacer(modifier = Modifier.width(12.dp))
+                Text("Continue with Google", fontSize = 16.sp)
             }
             
             Spacer(modifier = Modifier.height(24.dp))

@@ -1,0 +1,47 @@
+{
+  "project_info": {
+    "project_number": "748472212284",
+    "project_id": "chess-mobile-android",
+    "storage_bucket": "chess-mobile-android.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:748472212284:android:34e6452d9c5dca3bd0dc39",
+        "android_client_info": {
+          "package_name": "com.dariusepure.chessmobile"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "748472212284-8bp67nt7movo4ktsv7hlmq8oip66md3s.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.dariusepure.chessmobile",
+            "certificate_hash": "2a2bc6737597d8798df780eb6a25587e4e1d99e4"
+          }
+        },
+        {
+          "client_id": "748472212284-ns1r9mo0dhgi86slpuqcat1dubbr2n4u.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDBauyRDGTO502-jL2glU-WrdaYhwEMyIc"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "748472212284-ns1r9mo0dhgi86slpuqcat1dubbr2n4u.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

@@ -1,8 +1,15 @@
-# Task-uri Comutator Dark/Light Mode
+# Task-uri Redenumire Entități Firestore
 
-- [x] Implementare persistență temă în `UserManager.kt`
-- [x] Actualizare `ChessViewModel.kt` pentru gestionarea stării temei
-- [x] Modificare `Theme.kt` pentru a suporta temă forțată
-- [x] Integrare selector temă în `MainMenuScreen.kt`
-- [x] Actualizare `MainActivity.kt` pentru a lega totul
-- [x] Verificare și Walkthrough
+- [ ] Redenumire Modele de Date
+    - [ ] `User.kt` -> `FirestoreUser.kt` (Clasa `FirestoreUser`)
+    - [ ] Extragere `Match` din `Game.kt` -> `FirestoreMatch.kt` (Clasa `FirestoreMatch` și `FirestoreGameStatus`)
+- [ ] Redenumire Repository
+    - [ ] `GameRepository.kt` -> `FirestoreGameRepository.kt` (Obiectul `FirestoreGameRepository`)
+- [ ] Actualizare Referințe în Cod
+    - [ ] `UserManager.kt`
+    - [ ] `ChessViewModel.kt`
+    - [ ] `MainMenuScreen.kt`
+    - [ ] `FriendsScreen.kt`
+    - [ ] `LeaderboardScreen.kt`
+    - [ ] `MainActivity.kt`
+- [ ] Verificare Finală și Compilare

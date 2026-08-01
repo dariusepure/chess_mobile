@@ -1,0 +1,31 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Allow anyone to read profiles (needed for username check and leaderboard)
+    // But only the owner can write to their own profile
+    match /users/{userId} {
+      allow read: if true;
+      allow write: if request.auth != null && request.auth.uid == userId;
+    }
+
+    // Allow active matches to be read and written by participants
+    match /active_matches/{matchId} {
+      allow read, write: if request.auth != null &&
+        (request.auth.uid == resource.data.whitePlayerId ||
+         request.auth.uid == resource.data.blackPlayerId ||
+         request.auth.uid == request.resource.data.whitePlayerId ||
+         request.auth.uid == request.resource.data.blackPlayerId);
+    }
+
+    // Historical matches
+    match /match_history/{matchId} {
+      allow read: if request.auth != null;
+      allow write: if false; // Only written via server-side or batch from app logic
+    }
+
+    // Saved games for resume
+    match /saved_games/{userId} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
+  }
+}
